@@ -169,7 +169,7 @@ Accédez à l'interface web de Zabbix :
 
 3. **Configurez les notifications :**
    - Activez le type de média "Email" dans **Administration → Media Types**.
-   - Assurez-vous que votre client email supporte l'authentification à 2 facteurs.
+   - Assurez-vous que votre client email supporte l'authentification à 2 facteurs. (Bien rentrer le mdp délivré lors de l'authentification à 2 facteurs pour la connexion sur ZABBIX)
 
 ---
 
