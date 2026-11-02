@@ -1,94 +1,54 @@
-L'erreur **"Sub-process /usr/bin/dpkg returned an error code (1)"** indique qu'un problème est survenu lors de l'installation ou de la configuration du paquet `zabbix-apache-conf`. Voici comment résoudre ce problème.
+# Diagnostiquer une erreur APT/dpkg
 
----
+Le message « Sub-process /usr/bin/dpkg returned an error code (1) » indique un échec ; la cause se trouve généralement dans les lignes précédentes.
 
-### Étapes pour corriger l'erreur
+## 1. Relever les informations
 
-#### 1. **Analyser les logs d'installation**
-Commencez par identifier la cause exacte de l'erreur. Exécutez cette commande pour voir les détails de l'erreur :
+Conserver la commande lancée, le nom du paquet, la version Debian et les premières erreurs. Consulter :
+
 ```bash
-sudo apt install -f
+cat /etc/os-release
+sudo tail -n 60 /var/log/apt/term.log
+sudo tail -n 60 /var/log/dpkg.log
+sudo dpkg --audit
 ```
 
-Cela force la correction des paquets cassés. Si l'erreur persiste, vérifiez les journaux :
+## 2. Si un verrou est signalé
+
+Vérifier si une installation ou une mise à jour est encore en cours :
+
 ```bash
-sudo tail -n 20 /var/log/dpkg.log
+ps -ef | grep -E '[a]pt|[d]pkg'
 ```
 
----
+Attendre la fin de l'opération active. Ne pas effacer les fichiers de verrouillage : leur suppression ne termine pas le processus qui détient le verrou et peut permettre des accès concurrents à la base des paquets.
 
-#### 2. **Supprimer et réinstaller le fichier problématique**
-Si le fichier `.deb` de `zabbix-apache-conf` est corrompu ou incomplet, supprimez-le et essayez à nouveau.
+## 3. Après une interruption confirmée
 
-1. Supprimez le cache du fichier :
-   ```bash
-   sudo rm -f /var/cache/apt/archives/zabbix-apache-conf_1%3a7.2.2-1+debian12_all.deb
-   ```
+Une fois les autres opérations terminées, tenter de reprendre la configuration :
 
-2. Réessayez d’installer le paquet :
-   ```bash
-   sudo apt update
-   sudo apt install zabbix-apache-conf
-   ```
-
----
-
-#### 3. **Vérifier les fichiers verrouillés**
-Assurez-vous qu'il n'y a pas de fichiers verrouillés par `dpkg` :
-```bash
-sudo rm /var/lib/dpkg/lock-frontend
-sudo rm /var/lib/dpkg/lock
-sudo rm /var/cache/apt/archives/lock
-```
-
-Puis réessayez l'installation :
 ```bash
 sudo dpkg --configure -a
-sudo apt install -f
 ```
 
----
+Si des dépendances restent non satisfaites :
 
-#### 4. **Forcer la suppression du paquet cassé**
-Si le problème persiste, forcez la suppression et réinstallez :
-1. Supprimez le paquet problématique :
-   ```bash
-   sudo dpkg --remove --force-remove-reinstreq zabbix-apache-conf
-   ```
+```bash
+sudo apt --fix-broken install
+```
 
-2. Réinstallez le paquet :
-   ```bash
-   sudo apt install zabbix-apache-conf
-   ```
+Lire les changements proposés avant confirmation. En cas de nouvel échec, revenir à son message précis ; éviter une purge générale ou une suppression forcée sans diagnostic.
 
----
+## 4. Vérifier la résolution
 
-#### 5. **Télécharger le paquet manuellement**
-Si le problème persiste à cause d'un dépôt cassé ou indisponible :
-1. Téléchargez le fichier `.deb` depuis [le site de Zabbix](https://repo.zabbix.com/).
-2. Installez-le manuellement :
-   ```bash
-   sudo dpkg -i zabbix-apache-conf_1%3a7.2.2-1+debian12_all.deb
-   ```
+```bash
+sudo dpkg --audit
+```
 
-3. Corrigez les dépendances manquantes :
-   ```bash
-   sudo apt --fix-broken install
-   ```
+Reprendre ensuite l'installation du paquet identifié, puis vérifier séparément le service concerné. Une commande APT réussie ne prouve pas que Zabbix est configuré et opérationnel.
 
----
+**Statut :** procédure de diagnostic relue en novembre 2026, sans reproduction d'un incident sur une VM Zabbix.
 
-### Résolution avancée
-Si rien ne fonctionne, désinstallez complètement Zabbix et réinstallez :
+Référence : [FAQ officielle de l'équipe Debian dpkg](https://wiki.debian.org/Teams/Dpkg/FAQ).
 
-1. Supprimez Zabbix :
-   ```bash
-   sudo apt remove --purge zabbix-server zabbix-frontend-php zabbix-agent
-   sudo apt autoremove
-   ```
-
-2. Réinstallez en suivant les instructions.
-
----
-
-Si vous avez encore des difficultés, partagez le message complet d'erreur pour un diagnostic plus précis ! 😊
+[Retour au sommaire](README.md)
